@@ -15,10 +15,9 @@ const host = process.env.HOST || "localhost";
 const port = process.env.PORT || 4321;
 // Backend params
 const authHost = process.env.AUTHHOST || "http://127.0.0.1:3004/api/docs/";
-const authPath = "/assertReadWrite";
 // DB params
 const dbHost = process.env.DBHOST || "mongodb://localhost:27019/colablexical";
-const dbcollection = process.env.DBCOLLECTION || "documents";
+const dbcollection = "documents";
 const mdb = new MongodbPersistence(dbHost, dbcollection);
 
 const server = http.createServer();
@@ -54,11 +53,9 @@ server.on("upgrade", async (request, socket, head) => {
     logger.error("[auth]: docId undefined");
     isAuthorised = false;
   } else {
-    logger.debug(
-      `[auth]: GET http://127.0.0.1:3004/api/docs/${docId}/assertReadWrite`
-    );
+    logger.debug(`[auth]: GET ${authHost}api/docs/${docId}/assertReadWrite`);
     const authRes = await fetch(
-      `http://127.0.0.1:3004/api/docs/${docId}/assertReadWrite`,
+      `${authHost}api/docs/${docId}/assertReadWrite`,
       {
         method: "GET",
         headers: {
