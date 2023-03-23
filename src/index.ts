@@ -54,18 +54,21 @@ server.on("upgrade", async (request, socket, head) => {
     isAuthorised = false;
   } else {
     logger.debug(`[auth]: GET ${authHost}api/docs/${docId}/assertReadWrite`);
-    const authRes = await fetch(
-      `${authHost}api/docs/${docId}/assertReadWrite`,
-      {
-        method: "GET",
-        headers: {
-          Cookie: cookie,
-        },
-      }
-    );
-
-    isAuthorised = authRes.status < 400;
-    // isAuthorised = true;
+    try {
+      const authRes = await fetch(
+        `${authHost}api/docs/${docId}/assertReadWrite`,
+        {
+          method: "GET",
+          headers: {
+            Cookie: cookie,
+          },
+        }
+      );
+      isAuthorised = authRes.status < 400;
+      // isAuthorised = true;
+    } catch (err) {
+      logger.error(err);
+    }
   }
 
   if (!isAuthorised) {
