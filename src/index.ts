@@ -1,6 +1,5 @@
 import WebSocket, { WebSocketServer } from "ws";
 import http from "http";
-import express from "express";
 import { setPersistence, setupWSConnection } from "./server/utils.js";
 import logger from "./utils/logger.js";
 import { MongodbPersistence } from "y-mongodb";
@@ -22,8 +21,7 @@ const dbHost = process.env.DBHOST || "mongodb://localhost:27019/colablexical";
 const dbcollection = process.env.DBCOLLECTION || "documents";
 const mdb = new MongodbPersistence(dbHost, dbcollection);
 
-const app = express();
-const server = http.createServer(app);
+const server = http.createServer();
 const wss = new WebSocketServer({ noServer: true });
 
 setPersistence({
@@ -42,47 +40,53 @@ setPersistence({
   writeState: async (docName, ydoc) => {},
 });
 
-server.on("upgrade", (request, socket, head) => {
-  const handleAuth = async (ws: WebSocket) => {
-    let isAuthorised;
+server.on("upgrade", async (request, socket, head) => {
+  let isAuthorised;
 
-    const queryParams = getQueryParams(request.url!);
-    const docId = queryParams.docId;
-    const cookie = request.headers.cookie;
+  const queryParams = getQueryParams(request.url!);
+  const docId = queryParams.docId;
+  const cookie = request.headers.cookie;
 
-    if (cookie == undefined) {
-      logger.error("[auth]: Cookie undefined");
-      isAuthorised = false;
-    } else if (docId === undefined) {
-      logger.error("[auth]: docId undefined");
-      isAuthorised = false;
-    } else {
-      logger.debug(
-        `[auth]: GET http://127.0.0.1:3004/api/docs/${docId}/assertReadWrite`
-      );
-      const authRes = await fetch(
-        `http://127.0.0.1:3004/api/docs/${docId}/assertReadWrite`,
-        {
-          method: "GET",
-          headers: {
-            Cookie: cookie,
-          },
-        }
-      );
-      authRes.status > 400 ? (isAuthorised = false) : (isAuthorised = true);
-    }
+  if (cookie == undefined) {
+    logger.error("[auth]: Cookie undefined");
+    isAuthorised = false;
+  } else if (docId === undefined) {
+    logger.error("[auth]: docId undefined");
+    isAuthorised = false;
+  } else {
+    logger.debug(
+      `[auth]: GET http://127.0.0.1:3004/api/docs/${docId}/assertReadWrite`
+    );
+    const authRes = await fetch(
+      `http://127.0.0.1:3004/api/docs/${docId}/assertReadWrite`,
+      {
+        method: "GET",
+        headers: {
+          Cookie: cookie,
+        },
+      }
+    );
 
-    if (!isAuthorised) {
-      ws.close(1008, "Unauthorised");
-      logger.error("[auth]: Authorisation denied");
-    }
+    isAuthorised = authRes.status < 400;
+    // isAuthorised = true;
+  }
 
-    logger.debug("[auth]: Authorisation approved");
-    logger.debug(`Current connections: ${wss.clients.size}`);
-    wss.emit("connection", ws, request);
-    logger.debug(`CONNOPENED: ${request.url}`);
-  };
-  wss.handleUpgrade(request, socket, head, handleAuth);
+  if (!isAuthorised) {
+    logger.error("[auth]: Authorisation denied");
+    socket.write("HTTP/1.1 401 Unauthorized\r\n");
+    socket.end();
+    socket.destroy();
+    return;
+  } else {
+    const handleAuth = async (ws: WebSocket) => {
+      logger.debug("[auth]: Authorisation approved");
+      logger.debug(`Current connections: ${wss.clients.size}`);
+      wss.emit("connection", ws, request);
+      logger.debug(`CONNOPENED: ${request.url}`);
+    };
+
+    wss.handleUpgrade(request, socket, head, handleAuth);
+  }
 });
 
 wss.on("connection", setupWSConnection);
