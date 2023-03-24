@@ -65,9 +65,10 @@ server.on("upgrade", async (request, socket, head) => {
         }
       );
       isAuthorised = authRes.status < 400;
-      // isAuthorised = true;
     } catch (err) {
       logger.error(err);
+      logger.error("[auth]: Authorisation error");
+      isAuthorised = false;
     }
   }
 

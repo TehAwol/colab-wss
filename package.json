@@ -19,7 +19,6 @@
   "dependencies": {
     "lib0": "^0.2.64",
     "lodash": "^4.17.21",
-    "mongodb": "^5.1.0",
     "node-fetch": "^3.3.0",
     "pino": "^8.11.0",
     "pino-pretty": "^9.4.0",
