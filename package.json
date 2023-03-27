@@ -6,13 +6,16 @@
   "type": "module",
   "scripts": {
     "start": "node dist/index.js",
-    "watch": "nodemon -L --exec \"yarn run build\" --watch src/ -e js,ts --ignore node_modules --ignore dist",
-    "build": "tsc"
+    "watch": "concurrently \"yarn run build:watch\" \"yarn run start:watch\"",
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "start:watch": "nodemon --watch dist/ --ext js --ignore node_modules --ignore dist/index.js.map dist/index.js"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.191",
     "@types/node": "^18.14.6",
     "@types/ws": "^8.5.4",
+    "concurrently": "^7.6.0",
     "nodemon": "^2.0.21"
   },
   "dependencies": {
