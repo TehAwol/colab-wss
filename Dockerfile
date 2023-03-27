@@ -2,16 +2,16 @@ FROM node:18
 
 ENV PORT="4321"
 ENV HOST="localhost"
-ENV AUTHHOST="http://host.docker.internal:3004/"
+ENV AUTHHOST="http://host.docker.internal:8080/"
 ENV DBHOST="mongodb://host.docker.internal:27019/colablexical"
 
 WORKDIR /app
 
 COPY package.json ./
 
-RUN yarn install && yarn cache clean
-
 COPY . .
+
+RUN yarn install && yarn build && yarn install --production && yarn cache clean
 
 EXPOSE 4321
 

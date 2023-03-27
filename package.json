@@ -7,16 +7,16 @@
   "scripts": {
     "start": "node dist/index.js",
     "watch": "nodemon -L --exec \"yarn run build\" --watch src/ -e js,ts --ignore node_modules --ignore dist",
-    "build": "tsc && node --trace-warnings dist/index.js"
+    "build": "tsc"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.191",
     "@types/node": "^18.14.6",
     "@types/ws": "^8.5.4",
-    "dotenv": "^16.0.3",
     "nodemon": "^2.0.21"
   },
   "dependencies": {
+    "dotenv": "^16.0.3",
     "lib0": "^0.2.64",
     "lodash": "^4.17.21",
     "node-fetch": "^3.3.0",
