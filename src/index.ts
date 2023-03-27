@@ -39,19 +39,19 @@ setPersistence({
   writeState: async (docName, ydoc) => {},
 });
 
-server.on("upgrade", async (request, socket, head) => {
-  let isAuthorised;
-
+const authorizeRequest = async (
+  request: http.IncomingMessage
+): Promise<boolean> => {
   const queryParams = getQueryParams(request.url!);
   const docId = queryParams.docId;
   const cookie = request.headers.cookie;
 
   if (cookie == undefined) {
     logger.error("[auth]: Cookie undefined");
-    isAuthorised = false;
+    return false;
   } else if (docId === undefined) {
     logger.error("[auth]: docId undefined");
-    isAuthorised = false;
+    return false;
   } else {
     logger.debug(`[auth]: GET ${authHost}api/docs/${docId}/assertReadWrite`);
     try {
@@ -64,21 +64,17 @@ server.on("upgrade", async (request, socket, head) => {
           },
         }
       );
-      isAuthorised = authRes.status < 400;
+      return authRes.status < 400;
     } catch (err) {
       logger.error(err);
       logger.error("[auth]: Authorisation error");
-      isAuthorised = false;
+      return false;
     }
   }
+};
 
-  if (!isAuthorised) {
-    logger.error("[auth]: Authorisation denied");
-    socket.write("HTTP/1.1 401 Unauthorized\r\n");
-    socket.end();
-    socket.destroy();
-    return;
-  } else {
+server.on("upgrade", async (request, socket, head) => {
+  if (await authorizeRequest(request)) {
     const handleAuth = async (ws: WebSocket) => {
       logger.debug("[auth]: Authorisation approved");
       logger.debug(`Current connections: ${wss.clients.size}`);
@@ -87,6 +83,12 @@ server.on("upgrade", async (request, socket, head) => {
     };
 
     wss.handleUpgrade(request, socket, head, handleAuth);
+  } else {
+    logger.error("[auth]: Authorisation denied");
+    socket.write("HTTP/1.1 401 Unauthorized\r\n");
+    socket.end();
+    socket.destroy();
+    return;
   }
 });
 
